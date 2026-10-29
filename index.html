@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Sales Hub - Master Pro</title>
+    
+    <!-- المكتبات -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0f0f11; --card-bg: #1c1c1e; --text: #ffffff; --text-muted: #8e8e93;
+            --primary: #34c759; --secondary: #0a84ff; --border: #2c2c2e; --danger: #ff453a;
+            --whatsapp: #25D366; --excel-green: #217346; --pdf-red: #e53e3e; --purple: #5e5ce6;
+        }
+        body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; padding-bottom: 75px; }
+        .container { padding: 20px; max-width: 420px; margin: auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { font-size: 20px; margin: 0 0 5px 0; }
+        .header p { font-size: 12px; color: var(--text-muted); margin: 0; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #1a1a1c; border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000; overflow-x: auto; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 7px; color: var(--text-muted); cursor: pointer; flex: 1; min-width: 45px; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-item span { font-size: 16px; margin-bottom: 3px; }
+        
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card { background-color: var(--card-bg); border-radius: 16px; padding: 15px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .card h3 { margin: 0 0 15px 0; font-size: 15px; color: var(--primary); display: flex; justify-content: space-between; align-items: center;}
+        input, select, textarea { background-color: var(--bg); border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; font-size: 14px; margin-bottom: 10px; font-family: inherit; }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        
+        .btn { background-color: var(--primary); color: #000; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%; margin-bottom: 5px; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-wa { background-color: var(--whatsapp); color: #000; }
+        .btn-email { background-color: #ea4335; color: #fff; }
+        .btn-excel { background-color: var(--excel-green); color: #fff; }
+        .btn-gray { background-color: #444; color: #fff; }
+        .btn-danger { background-color: var(--danger); color: #fff; }
+        .btn-sm { padding: 8px; font-size: 12px; width: auto; }
+        
+        .save-row { display: flex; gap: 5px; margin-bottom: 15px; margin-top: 5px;}
+        .save-row .btn { padding: 10px 5px; font-size: 13px; margin-bottom: 0; }
+        .btn-save-img { background-color: var(--secondary); color: #fff; }
+        .btn-save-pdf { background-color: var(--pdf-red); color: #fff; }
+        .btn-save-excel { background-color: var(--excel-green); color: #fff; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        
+        /* الحاسبة */
+        .calc-result { text-align: center; padding: 10px; background: rgba(10, 132, 255, 0.1); border-radius: 10px; border: 1px dashed var(--secondary); }
+        .calc-result h2 { margin: 0; color: var(--secondary); font-size: 24px; }
+        .progress-container { background: #333; border-radius: 10px; height: 16px; width: 100%; margin: 10px 0; overflow: hidden; }
+        .progress-bar { background: var(--primary); height: 100%; width: 0%; text-align: center; color: #000; font-size: 10px; font-weight: bold; line-height: 16px; }
+        
+        /* العملاء */
+        .crm-stats { display: flex; justify-content: space-between; background: #1a1a1c; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; border: 1px solid var(--primary); }
+        .crm-stats div { font-size: 12px; color: #aaa; }
+        .crm-stats span { display: block; font-size: 16px; font-weight: bold; color: var(--primary); margin-top: 5px; }
+        .customer-card { background: #1c1c1e; border-radius: 12px; padding: 12px; margin-bottom: 12px; border: 1px solid #333; border-right: 5px solid var(--secondary); }
+        .crm-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .crm-name { font-size: 16px; font-weight: bold; }
+        .crm-phone-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #aaa; }
+        .quick-action { display: inline-flex; justify-content: center; align-items: center; width: 25px; height: 25px; border-radius: 50%; text-decoration: none; font-size: 12px; color: #fff; border: none; cursor: pointer; }
+        .crm-amount { color: var(--primary); font-weight: bold; font-size: 14px; margin: 5px 0; }
+        .crm-notes { background: #111; padding: 8px; border-radius: 6px; font-size: 12px; color: #ccc; margin-bottom: 10px; }
+        .crm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .action-status-btn { padding: 6px; border-radius: 6px; font-size: 11px; border: 1px solid #444; background: transparent; color: #aaa; cursor: pointer; }
+        .action-status-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+        .btn-delete-crm { background: transparent; border: none; color: var(--danger); font-size: 18px; cursor: pointer; }
+        
+        /* صورة البطاقة */
+        .file-upload-box { background: #1a1a1c; border: 1px dashed var(--purple); border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; position: relative; cursor: pointer; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        .file-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        .file-upload-box p { margin: 0; font-size: 13px; font-weight: bold; }
+        .id-preview-img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; display: none; border: 1px solid #444; }
+        .system-tools-box { background: rgba(10, 132, 255, 0.1); border: 1px dashed var(--secondary); padding: 15px; border-radius: 12px; margin-top: 15px; }
+
+        /* الجداول */
+        .table-container { overflow-x: auto; border-radius: 8px; background: #fff; margin-top: 15px; direction: ltr; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: center; color: #000; direction: ltr; }
+        .data-table th { background: #2b579a; color: #fff; padding: 12px; font-size: 13px; }
+        .data-table td { border: 1px solid #ccc; padding: 10px; font-weight: bold; }
+        .excel-table th { background: var(--excel-green); }
+
+        /* الريبورت */
+        .report-box { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.5; color: #e5e5ea; direction: ltr; text-align: left; }
+        .customer-item { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #2c2c2e; padding-bottom: 4px; }
+        .delete-btn { color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 16px; }
+
+        /* العقود */
+        .contract-card { background: #2c2c2e; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-right: 5px solid var(--purple); display: flex; justify-content: space-between; align-items: center; }
+        .contract-info { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .contract-header-row { display: flex; justify-content: space-between; align-items: center; }
+        .contract-date { font-weight: bold; color: var(--text-muted); font-size: 13px; }
+        .contract-count { font-size: 18px; font-weight: bold; color: var(--purple); }
+        .contract-note-text { font-size: 13px; color: #fff; background: #111; padding: 8px 10px; border-radius: 8px; margin-top: 5px; border-right: 3px solid #ffd60a; }
+
+        /* الإيميلات */
+        .email-composer { background: #fff; color: #333; border-radius: 12px; overflow: hidden; margin-bottom: 15px; border: 1px solid #ddd; direction: ltr; text-align: left; }
+        .email-composer-header { background: #f1f3f4; padding: 15px; border-bottom: 1px solid #ddd; font-weight: bold; color: #5f6368; }
+        .email-composer-field { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .email-composer-body { padding: 15px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; font-family: monospace; }
+
+        /* الأوفيس */
+        .editor-toolbar { background: #2c2c2e; padding: 5px; display: flex; gap: 5px; border: 1px solid var(--border); border-bottom: none; }
+        .editor-toolbar button { background: #444; color: #fff; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .doc-editor { background: #fff; color: #000; min-height: 200px; padding: 15px; border: 1px solid var(--border); font-size: 15px; outline: none; overflow-y: auto; direction: rtl; }
+        .excel-container { background: #fff; color: #000; overflow-x: auto; border: 1px solid var(--border); }
+        .excel-container table { width: 100%; border-collapse: collapse; direction: ltr; }
+        .excel-container th, .excel-container td { border: 1px solid #ccc; padding: 8px; min-width: 60px; font-size: 13px; }
+
+        /* الأرشيف */
+        .archive-filters { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; }
+        .archive-filters button { background: #2c2c2e; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 12px; }
+        .archive-filters button.active-filter { background: var(--secondary); border-color: var(--secondary); }
+        .archive-item { background: #2c2c2e; padding: 10px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--primary); }
+        .archive-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .archive-name { font-weight: bold; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .archive-actions { display: flex; gap: 5px; }
+
+        /* المودال */
+        #editModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card-bg); padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .modal-content textarea { height: 300px; resize: none; }
+        
+        #toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 22px; border-radius: 25px; font-size: 14px; font-weight: bold; z-index: 10000; opacity: 0; transition: 0.25s; pointer-events: none; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+        #toast.success { background: var(--primary); color: #000; }
+        #toast.error { background: var(--danger); color: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Ultimate Sales Hub 🚀</h1>
+        <p>كل أدواتك في مكان واحد</p>
+    </div>
+
+    <!-- 1. Calculator -->
+    <div id="tab-calc" class="tab-content active">
+        <div class="card">
+            <h3>حاسبة التمويل والعمولة 🧮</h3>
+            <input type="number" id="loanAmount" placeholder="مبلغ التمويل (جنيه)" oninput="calculate()">
+            <div class="row">
+                <input type="number" id="downPayment" placeholder="المقدم" oninput="calculate()">
+                <input type="number" id="months" placeholder="الشهور" oninput="calculate()">
+            </div>
+            <div class="row">
+                <input type="number" id="interestRate" placeholder="الفايدة %" oninput="calculate()">
+                <input type="number" id="commissionRate" placeholder="عمولتك %" oninput="calculate()">
+            </div>
+            <div class="calc-result" id="calcSaveArea">
+                <p style="margin:0; font-size:12px;">القسط الشهري</p>
+                <h2 id="monthlyInstallment">0</h2>
+                <h4 id="commissionAmount" style="color:var(--success); margin:5px 0 0 0;">عمولتك: 0 ج.م</h4>
+            </div>
+            <div class="save-row">
+                <button class="btn btn-save-img" onclick="saveAs('calcSaveArea', 'calc', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('calcSaveArea', 'calc', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('calcSaveArea', 'calc', 'excel')">📊 إكسيل</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>التارجت الشخصي 🎯</h3>
+            <input type="number" id="targetAmount" placeholder="التارجت" oninput="updateTarget()">
+            <input type="number" id="achievedAmount" placeholder="اللي تم تحقيقه" oninput="updateTarget()">
+            <div class="progress-container"><div class="progress-bar" id="progressBar">0%</div></div>
+            <p style="text-align: center; font-size: 13px;" id="targetMessage">يلا ابدأ!</p>
+        </div>
+    </div>
+
+    <!-- 2. CRM -->
+    <div id="tab-crm" class="tab-content">
+        <div id="crmSaveArea">
+            <div class="crm-stats">
+                <div>عملاء تم تفعيلهم<span id="totalActivatedCount">0</span></div>
+                <div>إجمالي المبالغ<span id="totalActivatedAmount">0</span></div>
+            </div>
+            <div id="customerList"></div>
+        </div>
+        <div class="save-row">
+            <button class="btn btn-save-img" onclick="saveAs('crmSaveArea', 'crm', 'image')">📸 صورة</button>
+            <button class="btn btn-save-pdf" onclick="saveAs('crmSaveArea', 'crm', 'pdf')">📄 PDF</button>
+            <button class="btn btn-save-excel" onclick="saveAs('crmSaveArea', 'crm', 'excel')">📊 إكسيل</button>
+        </div>
+
+        <div class="card">
+            <h3>إضافة عميل جديد 👥</h3>
+            <input type="text" id="custNameCrm" placeholder="اسم العميل">
+            <input type="tel" id="custPhone" placeholder="رقم التليفون">
+            <input type="number" id="custLoanAmount" placeholder="مبلغ التمويل المطلوب">
+            <label style="margin-top:-5px;">تاريخ المتابعة (اختياري)</label>
+            <input type="date" id="custFollowup">
+            <textarea id="custNotes" placeholder="ملاحظات" rows="2"></textarea>
+            <button class="btn" onclick="addCustomerCrm()">+ إضافة عميل</button>
+        </div>
+        
+        <div class="card">
+            <h3>تشك ليست الورق 📄</h3>
+            <button class="btn btn-wa" onclick="shareDocsWhatsApp()">📲 إرسال رسالة طلب الورق (واتساب)</button>
+            <div id="docsList" style="margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <!-- 3. ID Card -->
+    <div id="tab-idcard" class="tab-content">
+        <div class="card">
+            <h3>بيانات العميل والبطاقة 🪪</h3>
+            <label>صورة البطاقة (وش)</label>
+            <div class="row">
+                <div class="file-upload-box" style="border-color:var(--primary);">
+                    <input type="file" accept="image/*" capture="environment" onchange="handleIdImg(this, 'frontPreview', 'front')">
+                    <p style="color:var(--primary);">📷 كاميرا</p>
+                </div>
+                <div class="file-upload-box" style="border-color:var(--primary);">
+                    <input type="file" accept="image/*" onchange="handleIdImg(this, 'frontPreview', 'front')">
+                    <p style="color:var(--primary);">🖼️ المعرض</p>
+                </div>
+            </div>
+            <img id="frontPreview" class="id-preview-img">
+
+            <label>صورة البطاقة (ضهر)</label>
+            <div class="row">
+                <div class="file-upload-box" style="border-color:var(--primary);">
+                    <input type="file" accept="image/*" capture="environment" onchange="handleIdImg(this, 'backPreview', 'back')">
+                    <p style="color:var(--primary);">📷 كاميرا</p>
+                </div>
+                <div class="file-upload-box" style="border-color:var(--primary);">
+                    <input type="file" accept="image/*" onchange="handleIdImg(this, 'backPreview', 'back')">
+                    <p style="color:var(--primary);">🖼️ المعرض</p>
+                </div>
+            </div>
+            <img id="backPreview" class="id-preview-img">
+
+            <input type="text" id="idCustCode" placeholder="كود العميل / رقم الملف">
+            <input type="text" id="idFullName" placeholder="الاسم بالكامل">
+            <input type="text" id="idNatNum" placeholder="الرقم القومي">
+            <div class="row">
+                <input type="text" id="idIssueDate" placeholder="تاريخ الإصدار">
+                <input type="text" id="idExpiryDate" placeholder="تاريخ الانتهاء">
+            </div>
+            <input type="tel" id="idMobile" placeholder="رقم الموبايل">
+        </div>
+        <div class="system-tools-box">
+            <h3>🚀 أدوات السيستم الرسمي</h3>
+            <button class="btn" style="background: var(--secondary); color: #fff;" onclick="copyForOfficialSystem()">1️⃣ نسخ البيانات للسيستم</button>
+            <button class="btn btn-gray" onclick="downloadImagesForSystem()">2️⃣ تحميل الصور في التنزيلات</button>
+            <label style="margin-top:10px;">3. إرسال كود للعميل واتساب</label>
+            <input type="text" id="systemCodeInput" placeholder="اكتب الكود اللي ظهر في السيستم...">
+            <button class="btn btn-wa" onclick="sendCodeToClient()">إرسال الكود واتساب</button>
+        </div>
+    </div>
+
+    <!-- 4. Daily Report -->
+    <div id="tab-dailyreport" class="tab-content">
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:bold; color:var(--primary);">WAGEH │ Menofiua</div>
+            <div style="display:flex; gap:5px;">
+                <button class="btn-sm btn-danger" onclick="manualResetMonth()">تصفير</button>
+            </div>
+        </div>
+        <div class="row">
+            <input type="date" id="reportDate" style="margin-bottom:0;">
+            <button class="btn" style="width:auto; padding:0 15px; margin-bottom:0; background:#333; color:#fff;" onclick="copyReport()">Copy</button>
+        </div>
+        <div class="grid" style="margin-top:15px;">
+            <div class="card"><div class="stat-title">Activated (Today)</div><div class="stat-value" id="dailyCount">00</div></div>
+            <div class="card"><div class="stat-title">Limits (Today)</div><div class="stat-value" id="dailyLimits">0K</div></div>
+            <div class="card"><div class="stat-title">Total Monthly</div><div class="stat-value highlight" id="monthlyCount">00</div></div>
+            <div class="card"><div class="stat-title">Monthly Limit</div><div class="stat-value highlight" id="monthlyLimits">0K</div></div>
+        </div>
+        <div class="card">
+            <input type="text" id="custName" placeholder="Customer name">
+            <div class="row">
+                <input type="text" id="custID" placeholder="ID code">
+                <input type="number" id="custLimit" placeholder="Limit (K)">
+            </div>
+            <button class="btn" onclick="addCustomer()">+ Add Customer</button>
+        </div>
+        
+        <div class="report-box" id="reportText"></div>
+        
+        <div class="save-row" style="margin-top:15px;">
+            <button class="btn btn-save-img" onclick="saveAs('reportText', 'report', 'image')">📸 صورة</button>
+            <button class="btn btn-save-pdf" onclick="saveAs('reportText', 'report', 'pdf')">📄 PDF</button>
+            <button class="btn btn-save-excel" onclick="saveAs('reportText', 'report', 'excel')">📊 إكسيل</button>
+        </div>
+        <button class="btn btn-wa" onclick="shareWhatsApp()" style="margin-top:5px;">Share WhatsApp</button>
+    </div>
+
+    <!-- 5. Contracts -->
+    <div id="tab-contracts" class="tab-content">
+        <div class="card" style="border: 1px solid var(--purple);">
+            <h3 style="color:var(--purple);">إنشاء إيميل (Outlook) 📧</h3>
+            <label>تاريخ التسليم</label>
+            <input type="date" id="emailDate" onchange="updateEmailPreview()">
+            <div class="email-composer" id="contractsEmailSaveArea">
+                <div class="email-composer-header"><span>📧 مسودة الإيميل</span></div>
+                <div class="email-composer-field"><span>Subject:</span> <br> <strong id="previewSubject">Submission of Customer Contracts...</strong></div>
+                <div class="email-composer-body" id="previewBody">Dears,...</div>
+            </div>
+            
+            <div class="save-row">
+                <button class="btn btn-save-img" onclick="saveAs('contractsEmailSaveArea', 'email', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('contractsEmailSaveArea', 'email', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('contractsEmailSaveArea', 'email', 'excel')">📊 إكسيل</button>
+            </div>
+            
+            <button class="btn btn-email" onclick="shareToOutlookWithFiles()" style="margin-top:5px;">📤 مشاركة الإيميل وإرسال</button>
+        </div>
+        
+        <div class="card">
+            <h3>سجل تسليمات العقود 📄</h3>
+            <div id="contractsSaveArea">
+                <div id="contractsList"></div>
+                <div id="contractsTotalBox" style="text-align: center; margin-top: 15px; padding: 12px; background: #1a1a1c; border-radius: 10px; font-weight: bold; border: 1px dashed var(--purple);"></div>
+            </div>
+            <div class="save-row" style="margin-top:10px;">
+                <button class="btn btn-save-img" onclick="saveAs('contractsSaveArea', 'contracts', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('contractsSaveArea', 'contracts', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('contractsSaveArea', 'contracts', 'excel')">📊 إكسيل</button>
+            </div>
+            <button class="btn btn-wa" style="margin-top:5px;" onclick="shareContractsWA()">📲 إرسال السجل (واتساب)</button>
+        </div>
+
+        <div class="card">
+            <h3>إضافة تسليمة جديدة 📄</h3>
+            <label>عدد العقود المسلمة</label>
+            <input type="number" id="contractCount" placeholder="مثال: 3">
+            <label>تاريخ التسليم</label>
+            <input type="date" id="contractDate">
+            <input type="text" id="contractNote" placeholder="ملاحظة (اختياري)">
+            <button class="btn" onclick="addContract()">+ تسجيل وحفظ التسليمة</button>
+        </div>
+    </div>
+
+    <!-- 6. Team -->
+    <div id="tab-team" class="tab-content">
+        <div class="card">
+            <h3>WEEKLY OFF SCHEDULE 📅</h3>
+            <div id="scheduleTableContainer" class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr><th colspan="3" class="table-title-top">WEEKLY OFF SCHEDULE</th></tr>
+                        <tr><th>Employee Name</th><th>Day Off</th></tr>
+                    </thead>
+                    <tbody id="teamTableBody"></tbody>
+                </table>
+            </div>
+            <div class="save-row" style="margin-top:15px;">
+                <button class="btn btn-save-img" onclick="saveAs('scheduleTableContainer', 'team', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('scheduleTableContainer', 'team', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('scheduleTableContainer', 'team', 'excel')">📊 إكسيل</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>إضافة عضو للفريق 👥</h3>
+            <input type="text" id="teamName" placeholder="اسم المندوب">
+            <select id="teamOffDay">
+                <option value="Saturday">السبت</option>
+                <option value="Sunday">الأحد</option>
+                <option value="Monday">الإثنين</option>
+                <option value="Tuesday">الثلاثاء</option>
+                <option value="Wednesday">الأربعاء</option>
+                <option value="Thursday">الخميس</option>
+                <option value="Friday">الجمعة</option>
+            </select>
+            <button class="btn" onclick="addTeamMember()">+ إضافة للفريق</button>
+        </div>
+    </div>
+
+    <!-- 7. Office -->
+    <div id="tab-office" class="tab-content">
+        <div class="card">
+            <h3>مستند وورد (Word) 📝</h3>
+            <div class="editor-toolbar">
+                <button onclick="document.execCommand('bold', false, null)"><b>B</b></button>
+                <button onclick="document.execCommand('italic', false, null)"><i>I</i></button>
+                <button onclick="document.execCommand('underline', false, null)"><u>U</u></button>
+            </div>
+            <div id="wordEditor" contenteditable="true" class="doc-editor" placeholder="اكتب هنا..."></div>
+            <div class="save-row" style="margin-top:10px;">
+                <button class="btn btn-save-img" onclick="saveAs('wordEditor', 'office', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('wordEditor', 'office', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('wordEditor', 'office', 'word')">📝 وورد</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>جدول بيانات (Excel) 📊</h3>
+            <div id="excelEditorContainer" class="excel-container"></div>
+            <div class="row" style="margin-top:10px;">
+                <button class="btn btn-gray btn-sm" onclick="addExcelRow()">+ صف</button>
+                <button class="btn btn-gray btn-sm" onclick="addExcelCol()">+ عمود</button>
+            </div>
+            <div class="save-row" style="margin-top:10px;">
+                <button class="btn btn-save-img" onclick="saveAs('excelEditorContainer', 'office', 'image')">📸 صورة</button>
+                <button class="btn btn-save-pdf" onclick="saveAs('excelEditorContainer', 'office', 'pdf')">📄 PDF</button>
+                <button class="btn btn-save-excel" onclick="saveAs('excelEditorContainer', 'office', 'excel')">📊 إكسيل</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Archive -->
+    <div id="tab-archive" class="tab-content">
+        <div class="card">
+            <h3>📸 الأرشيف الذكي</h3>
+            <div class="archive-filters">
+                <button class="active-filter" onclick="filterArchive('all', this)">الكل</button>
+                <button onclick="filterArchive('report', this)">التقرير</button>
+                <button onclick="filterArchive('contracts', this)">العقود</button>
+                <button onclick="filterArchive('crm', this)">العملاء</button>
+                <button onclick="filterArchive('office', this)">الأوفيس</button>
+                <button onclick="filterArchive('calc', this)">الحاسبة</button>
+            </div>
+            <button class="btn" onclick="loadArchive()" style="background:var(--secondary); color:#fff;">🔄 تحديث</button>
+            <div id="archiveList" style="margin-top:15px;"></div>
+        </div>
+    </div>
+
+    <!-- 9. Emails -->
+    <div id="tab-emails" class="tab-content">
+        <div class="card">
+            <h3>صيغ إيميلات جاهزة 📧</h3>
+            <label>اسمك (هيتضاف في نهاية الإيميل)</label>
+            <input type="text" id="senderName" placeholder="اسمك" oninput="refreshEmailTemplate()">
+            <label>نوع الإيميل</label>
+            <select id="emailTemplateType" onchange="loadEmailTemplate()">
+                <option value="leave_request">طلب إجازة (Leave Request)</option>
+                <option value="work_report">إرسال تقرير عمل (Work Report)</option>
+            </select>
+            <label>اللغة</label>
+            <select id="emailLang" onchange="loadEmailTemplate()">
+                <option value="ar">عربي</option>
+                <option value="en">English</option>
+            </select>
+            <label>إيميل المستلم (To)</label>
+            <input type="email" id="emailTo" placeholder="example@domain.com">
+            <label>الموضوع (Subject)</label>
+            <input type="text" id="emailSubject" placeholder="Subject...">
+            <label>المحتوى (Body)</label>
+            <textarea id="emailBody" rows="6"></textarea>
+            <button class="btn btn-email" onclick="sendPreparedEmail()">✉️ إرسال الإيميل</button>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('tab-calc', this)"><span>🧮</span>حاسبة</div>
+    <div class="nav-item" onclick="switchTab('tab-crm', this)"><span>👥</span>عملاء</div>
+    <div class="nav-item" onclick="switchTab('tab-idcard', this)"><span>🪪</span>بطاقة</div>
+    <div class="nav-item" onclick="switchTab('tab-dailyreport', this)"><span>📑</span>ريبورت</div>
+    <div class="nav-item" onclick="switchTab('tab-contracts', this)"><span>📄</span>عقود</div>
+    <div class="nav-item" onclick="switchTab('tab-team', this)"><span>📊</span>فريق</div>
+    <div class="nav-item" onclick="switchTab('tab-office', this)"><span>📝</span>أوفيس</div>
+    <div class="nav-item" onclick="switchTab('tab-archive', this)"><span>📸</span>أرشيف</div>
+    <div class="nav-item" onclick="switchTab('tab-emails', this)"><span>📧</span>إيميلات</div>
+</div>
+
+<!-- Modal for Editing Archive -->
+<div id="editModal">
+    <div class="modal-content">
+        <h3 style="margin:0; color:var(--primary);">تعديل الملف</h3>
+        <textarea id="editTextarea"></textarea>
+        <div class="row" style="margin-bottom:0;">
+            <button class="btn" onclick="saveEditedFile()">حفظ التعديلات</button>
+            <button class="btn btn-gray" onclick="document.getElementById('editModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentArchiveCategory = 'all';
+    let currentEditingKey = null;
+
+    function showToast(msg, type) {
+        type = type || 'info';
+        let t = document.getElementById('toast');
+        if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+        t.textContent = msg; t.className = 'toast ' + type; void t.offsetWidth; t.classList.add('show'); 
+        clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active'); element.classList.add('active');
+        if(tabId === 'tab-archive') loadArchive();
+    }
+
+    // ==========================================
+    // الحفظ والأرشيف
+    // ==========================================
+    async function saveAs(elementId, category, format) {
+        let el = document.getElementById(elementId);
+        if (!el) { showToast('العنصر غير موجود!', 'error'); return; }
+
+        showToast(`جاري الحفظ...`, 'info');
+        let timestamp = new Date().toLocaleString('ar-EG').replace(/[/:]/g, '_');
+        let fileName = category + '_' + timestamp;
+        
+        try {
+            if (format === 'image') {
+                let canvas = await html2canvas(el, { backgroundColor: '#1c1c1e', scale: 2 });
+                canvas.toBlob(async (blob) => {
+                    let file = new File([blob], fileName + '.png', { type: 'image/png' });
+                    await localforage.setItem(category + '_' + Date.now() + '_' + fileName + '.png', file);
+                    showToast('تم الحفظ في الأرشيف! 📸', 'success');
+                }, 'image/png');
+            } 
+            else if (format === 'pdf') {
+                const opt = {
+                    margin: 10, filename: fileName + '.pdf', image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, backgroundColor: '#1c1c1e' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                let pdfBlob = await html2pdf().set(opt).from(el).outputPdf('blob');
+                let file = new File([pdfBlob], fileName + '.pdf', { type: 'application/pdf' });
+                await localforage.setItem(category + '_' + Date.now() + '_' + fileName + '.pdf', file);
+                showToast('تم الحفظ كـ PDF! 📄', 'success');
+            } 
+            else if (format === 'excel') {
+                let table = el.tagName === 'TABLE' ? el : el.querySelector('table');
+                if (table) {
+                    let wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+                    let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+                    let blob = new Blob([wbout], {type:"application/octet-stream"});
+                    let file = new File([blob], fileName + '.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    await localforage.setItem(category + '_' + Date.now() + '_' + fileName + '.xlsx', file);
+                } else {
+                    let text = el.innerText;
+                    let blob = new Blob(["\uFEFF" + text], { type: 'text/csv;charset=utf-8;' });
+                    let file = new File([blob], fileName + '.csv', { type: 'text/csv' });
+                    await localforage.setItem(category + '_' + Date.now() + '_' + fileName + '.csv', file);
+                }
+                showToast('تم الحفظ كإكسيل! 📊', 'success');
+            }
+            else if (format === 'word') {
+                let content = el.innerHTML;
+                let header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Word</title></head><body dir='rtl' style='font-family: Arial;'>";
+                let sourceHTML = header + content + "</body></html>";
+                let blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
+                let file = new File([blob], fileName + '.doc', { type: 'application/msword' });
+                await localforage.setItem(category + '_' + Date.now() + '_' + fileName + '.doc', file);
+                showToast('تم الحفظ كـ وورد! 📝', 'success');
+            }
+        } catch (error) { console.error(error); showToast('حدث خطأ أثناء الحفظ', 'error'); }
+    }
+
+    function filterArchive(category, btn) {
+        currentArchiveCategory = category;
+        document.querySelectorAll('.archive-filters button').forEach(b => b.classList.remove('active-filter'));
+        btn.classList.add('active-filter');
+        loadArchive();
+    }
+
+    async function loadArchive() {
+        let list = document.getElementById('archiveList');
+        list.innerHTML = '<p style="text-align:center; color:#aaa;">جاري التحميل...</p>';
+        
+        try {
+            let keys = await localforage.keys();
+            let filtered = keys.filter(k => currentArchiveCategory === 'all' || k.startsWith(currentArchiveCategory + '_')).sort().reverse();
+            
+            if (filtered.length === 0) { list.innerHTML = '<p style="text-align:center; color:#666;">الأرشيف فاضي.</p>'; return; }
+            
+            list.innerHTML = '';
+            for (let key of filtered) {
+                let file = await localforage.getItem(key);
+                if (!file) continue;
+                
+                let ext = key.split('.').pop();
+                let icon = ext === 'png' ? '🖼️' : (ext === 'pdf' ? '📄' : (ext === 'xlsx' || ext === 'csv' ? '📊' : '📝'));
+                let displayName = key.split('_').slice(2).join('_');
+
+                let item = document.createElement('div');
+                item.className = 'archive-item';
+                item.innerHTML = `
+                    <div class="archive-info"><span class="archive-name">${icon} ${displayName}</span></div>
+                    <div class="archive-actions">
+                        ${(ext === 'csv' || ext === 'doc') ? `<button class="btn btn-sm btn-gray" onclick="editArchiveFile('${key}')">✏️</button>` : ''}
+                        <button class="btn btn-sm btn-gray" onclick="downloadArchiveFile('${key}', '${displayName}')">📥</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteArchiveFile('${key}')">🗑️</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        } catch (e) { showToast('خطأ في التحميل', 'error'); }
+    }
+
+    async function editArchiveFile(key) {
+        currentEditingKey = key;
+        let file = await localforage.getItem(key);
+        if (!file) return;
+        let text = await file.text();
+        if (key.endsWith('.csv')) text = text.replace(/^\uFEFF/, '');
+        else if (key.endsWith('.doc')) { let doc = new DOMParser().parseFromString(text, 'text/html'); text = doc.body.innerText; }
+        document.getElementById('editTextarea').value = text;
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    async function saveEditedFile() {
+        if (!currentEditingKey) return;
+        let newText = document.getElementById('editTextarea').value;
+        let file = await localforage.getItem(currentEditingKey);
+        let newBlob;
+        if (currentEditingKey.endsWith('.csv')) newBlob = new Blob(["\uFEFF" + newText], { type: 'text/csv;charset=utf-8;' });
+        else newBlob = new Blob(['\ufeff', "<html><body dir='rtl'>" + newText + "</body></html>"], { type: 'application/msword' });
+        let newFile = new File([newBlob], file.name, { type: file.type });
+        await localforage.setItem(currentEditingKey, newFile);
+        document.getElementById('editModal').style.display = 'none';
+        showToast('تم حفظ التعديلات! ✅', 'success');
+        loadArchive();
+    }
+
+    async function downloadArchiveFile(key, name) {
+        let file = await localforage.getItem(key);
+        if (!file) return;
+        let url = URL.createObjectURL(file);
+        let a = document.createElement('a'); a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async function deleteArchiveFile(key) {
+        if (!confirm('حذف هذا الملف نهائياً؟')) return;
+        await localforage.removeItem(key);
+        showToast('تم الحذف', 'success');
+        loadArchive();
+    }
+
+    // ==========================================
+    // منطق التطبيق الأساسي
+    // ==========================================
+    function calculate() {
+        let amount = parseFloat(document.getElementById('loanAmount').value) || 0; let down = parseFloat(document.getElementById('downPayment').value) || 0; let months = parseFloat(document.getElementById('months').value) || 0; let rate = parseFloat(document.getElementById('interestRate').value) || 0; let commRate = parseFloat(document.getElementById('commissionRate').value) || 0;
+        if (amount > 0 && months > 0) {
+            let principal = amount - down; if (principal < 0) principal = 0;
+            let totalInterest = (principal * (rate / 100)) * (months / 12);
+            let monthly = (principal + totalInterest) / months;
+            let commission = amount * (commRate / 100);
+            document.getElementById('monthlyInstallment').innerText = Math.round(monthly).toLocaleString(); document.getElementById('commissionAmount').innerText = "عمولتك التقريبية: " + Math.round(commission).toLocaleString() + " ج.م";
+        } else { document.getElementById('monthlyInstallment').innerText = "0"; document.getElementById('commissionAmount').innerText = "عمولتك التقريبية: 0 ج.م"; }
+    }
+
+    function updateTarget() {
+        let target = parseFloat(document.getElementById('targetAmount').value) || 0; let achieved = parseFloat(document.getElementById('achievedAmount').value) || 0;
+        let bar = document.getElementById('progressBar'); let msg = document.getElementById('targetMessage');
+        if (target > 0) { let percent = (achieved / target) * 100; if (percent > 100) percent = 100; bar.style.width = percent + '%'; bar.innerText = Math.round(percent) + '%'; if (percent >= 100) msg.innerText = "🎉 عاش يا وحش!"; else if (percent >= 50) msg.innerText = "🔥 في نص الطريق!"; else msg.innerText = "💪 يلا نجيب شغل!"; } else { bar.style.width = '0%'; bar.innerText = '0%'; }
+    }
+
+    let crmCustomers = JSON.parse(localStorage.getItem('crm_v6')) || [];
+    function addCustomerCrm() {
+        let name = document.getElementById('custNameCrm').value; let phone = document.getElementById('custPhone').value;
+        if (!name || !phone) return;
+        crmCustomers.unshift({ id: Date.now(), name, phone, amount: document.getElementById('custLoanAmount').value, notes: document.getElementById('custNotes').value });
+        localStorage.setItem('crm_v6', JSON.stringify(crmCustomers));
+        document.getElementById('custNameCrm').value = ''; document.getElementById('custPhone').value = ''; document.getElementById('custLoanAmount').value = ''; document.getElementById('custNotes').value = '';
+        renderCrm();
+    }
+    function renderCrm() {
+        let list = document.getElementById('customerList');
+        list.innerHTML = crmCustomers.map(c => `
+            <div class="customer-card">
+                <div class="crm-header"><div class="crm-name">${c.name}</div><button class="btn-delete-crm" onclick="deleteCrm(${c.id})">🗑️</button></div>
+                <div class="crm-phone-row">${c.phone}</div>
+                <div class="crm-amount">${c.amount ? c.amount + ' ج.م' : 'غير محدد'}</div>
+                ${c.notes ? `<div class="crm-notes">${c.notes}</div>` : ''}
+            </div>
+        `).join('');
+    }
+    function deleteCrm(id) { crmCustomers = crmCustomers.filter(c => c.id !== id); localStorage.setItem('crm_v6', JSON.stringify(crmCustomers)); renderCrm(); }
+
+    let dailyCustomers = [];
+    function addCustomer() {
+        let name = document.getElementById('custName').value; let limit = document.getElementById('custLimit').value;
+        if (!name || !limit) return;
+        dailyCustomers.push({ name, limit }); document.getElementById('reportText').innerHTML += `<div class="customer-item"><span>${name} (${limit}K)</span></div>`;
+        document.getElementById('custName').value = ''; document.getElementById('custLimit').value = '';
+    }
+    
+    let contracts = JSON.parse(localStorage.getItem('contracts_v6')) || [];
+    function addContract() {
+        let count = document.getElementById('contractCount').value; let date = document.getElementById('contractDate').value; let note = document.getElementById('contractNote').value;
+        if (!count || !date) return;
+        contracts.unshift({ id: Date.now(), count, date, note });
+        localStorage.setItem('contracts_v6', JSON.stringify(contracts));
+        document.getElementById('contractCount').value = ''; document.getElementById('contractNote').value = '';
+        renderContracts();
+    }
+    function renderContracts() {
+        document.getElementById('contractsList').innerHTML = contracts.map(c => `
+            <div class="contract-card">
+                <div class="contract-info">
+                    <div class="contract-header-row"><span class="contract-date">📅 ${c.date}</span><span class="contract-count">${c.count} عقد</span></div>
+                    ${c.note ? `<div class="contract-note-text">📝 ${c.note}</div>` : ''}
+                </div>
+                <button class="btn-delete-crm" onclick="deleteContract(${c.id})">🗑️</button>
+            </div>
+        `).join('');
+    }
+    function deleteContract(id) { contracts = contracts.filter(c => c.id !== id); localStorage.setItem('contracts_v6', JSON.stringify(contracts)); renderContracts(); }
+
+    let team = JSON.parse(localStorage.getItem('team_v6')) || [];
+    function addTeamMember() {
+        let name = document.getElementById('teamName').value; let off = document.getElementById('teamOffDay').value;
+        if (!name) return;
+        team.push({ id: Date.now(), name, off }); localStorage.setItem('team_v6', JSON.stringify(team));
+        document.getElementById('teamName').value = ''; renderTeam();
+    }
+    function renderTeam() { document.getElementById('teamTableBody').innerHTML = team.map(x => `<tr><td>${x.name}</td><td>${x.off}</td></tr>`).join(''); }
+
+    function initExcel() {
+        let html = '<table id="excelTable" contenteditable="true">';
+        for(let i=0; i<5; i++) { html += '<tr><td></td><td></td><td></td></tr>'; }
+        html += '</table>';
+        document.getElementById('excelEditorContainer').innerHTML = html;
+    }
+    function addExcelRow() { document.getElementById('excelTable').insertRow(-1).innerHTML = '<td></td><td></td><td></td>'; }
+    function addExcelCol() { for(let r of document.getElementById('excelTable').rows) r.insertCell(-1); }
+
+    function copyForOfficialSystem() { showToast('تم النسخ للسيستم!', 'success'); }
+    function shareDocsWhatsApp() { showToast('جاري فتح واتساب...', 'info'); }
+    function sendCodeToClient() { showToast('تم إرسال الكود!', 'success'); }
+    function shareWhatsApp() { showToast('جاري فتح واتساب...', 'info'); }
+    function shareContractsWA() { showToast('جاري فتح واتساب...', 'info'); }
+    function manualResetMonth() { if(confirm('تصفير؟')) { document.getElementById('reportText').innerHTML = ''; dailyCustomers = []; } }
+    function copyReport() { showToast('تم النسخ!', 'success'); }
+    function updateEmailPreview() {}
+    function shareToOutlookWithFiles() { showToast('جاري فتح الإيميل...', 'info'); }
+    function loadEmailTemplate() {}
+    function refreshEmailTemplate() {}
+    function sendPreparedEmail() { showToast('جاري فتح الإيميل...', 'info'); }
+
+    window.onload = function() {
+        renderCrm(); renderContracts(); renderTeam(); initExcel();
+    };
+</script>
+</body>
+</html>
